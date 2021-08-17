@@ -1,0 +1,35 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/part-of: coffee-shop
+    app.openshift.io/runtime: quarkus
+    networking.knative.dev/visibility: cluster-local
+  name: barista
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: coffee-shop
+        app.openshift.io/runtime: quarkus
+    spec:
+      containerConcurrency: 0
+      containers:
+#      - image: image-registry.openshift-image-registry.svc:5000/user14-dev-coffeeshop/barista:dev-2021-08-17-18-29-57
+      - image: nexus-registry-nexus.apps.cluster-a423.dynamic.opentlc.com/user14-barista:prod-2021-08-17-18-29-57
+        name: user-container
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          successThreshold: 1
+          tcpSocket:
+            port: 0
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+      enableServiceLinks: false
+      timeoutSeconds: 300
+  traffic:
+  - latestRevision: true
+    percent: 100

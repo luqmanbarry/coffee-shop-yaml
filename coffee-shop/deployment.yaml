@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    app.openshift.io/connects-to: '["coffee-shop-database",{"apiVersion":"apps/v1","kind":"Deployment","name":"coffee-shop-database"},{"apiVersion":"serving.knative.dev/v1","kind":"Service","name":"barista"}]'
+  labels:
+    app: coffee-shop
+    app.kubernetes.io/component: coffee-shop
+    app.kubernetes.io/instance: coffee-shop
+    app.kubernetes.io/part-of: coffee-shop
+    app.openshift.io/runtime: quarkus
+  name: coffee-shop
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: coffee-shop
+      app.openshift.io/runtime: quarkus
+      deployment: coffee-shop
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+      labels:
+        app.kubernetes.io/part-of: coffee-shop
+        app.openshift.io/runtime: quarkus
+        deployment: coffee-shop
+    spec:
+      containers:
+      - env:
+        - name: QUARKUS_DATASOURCE_DB_KIND
+          valueFrom:
+            secretKeyRef:
+              key: quarkus.datasource.db-kind
+              name: coffee-shop
+        - name: QUARKUS_DATASOURCE_JDBC_URL
+          valueFrom:
+            secretKeyRef:
+              key: quarkus.datasource.jdbc.url
+              name: coffee-shop
+        - name: QUARKUS_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: quarkus.datasource.password
+              name: coffee-shop
+        - name: QUARKUS_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: quarkus.datasource.username
+              name: coffee-shop
+        - name: BARISTA_URL
+          valueFrom:
+            configMapKeyRef:
+              key: BARISTA_URL
+              name: coffee-shop
+#        image: image-registry.openshift-image-registry.svc:5000/user14-dev-coffeeshop/coffee-shop:dev-2021-08-17-18-26-38
+        image: nexus-registry-nexus.apps.cluster-a423.dynamic.opentlc.com/user14-coffee-shop:prod-2021-08-17-18-19-50
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: 8080
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: coffee-shop
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        - containerPort: 8443
+          protocol: TCP
+        - containerPort: 8778
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: 8080
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 300Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
